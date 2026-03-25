@@ -38,6 +38,7 @@ const productSchema = new mongoose.Schema(
     },
     taxIncluded: { type: Boolean, default: true },
     category: { type: String },
+    subCategory: { type: String },
     brand: { type: String },
     inStock: { type: Boolean, default: true },
   },
