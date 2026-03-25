@@ -111,7 +111,11 @@ router.post("/login", loginLimiter, async (req, res) => {
 
 // POST /api/admin/logout
 router.post("/logout", (req, res) => {
-  res.clearCookie("admin_token").json({ success: true });
+  res.clearCookie("admin_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  }).json({ success: true });
 });
 
 // GET /api/admin/verify
