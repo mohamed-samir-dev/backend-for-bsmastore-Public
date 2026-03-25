@@ -20,6 +20,24 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+const footerImgStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${req.params.key}-${Date.now()}${ext}`);
+  },
+});
+const uploadFooterImg = multer({ storage: footerImgStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+const docStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `doc-${req.params.key}-${Date.now()}${ext}`);
+  },
+});
+const uploadDoc = multer({ storage: docStorage, limits: { fileSize: 20 * 1024 * 1024 } });
+
 const productImageStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
   filename: (req, file, cb) => {
@@ -231,6 +249,14 @@ router.get("/company", async (req, res) => {
   try {
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
+    if (company.footerItems.length === 0) {
+      company.footerItems = [
+        { image: "", linkType: "link", link: "", file: "" },
+        { image: "", linkType: "link", link: "", file: "" },
+        { image: "", linkType: "link", link: "", file: "" },
+      ];
+      await company.save();
+    }
     res.json(company);
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
@@ -623,6 +649,129 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
     await product.save();
     res.json(product);
   } catch (err) {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/company/footer-image/:key  (images: qrImage, img1, img2)
+router.post("/company/footer-image/:key", authMiddleware, uploadFooterImg.single("image"), async (req, res) => {
+  try {
+    const { key } = req.params;
+    if (!["qrImage", "img1", "img2"].includes(key)) return res.status(400).json({ error: "حقل غير مسموح" });
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    let company = await Company.findOne();
+    if (!company) company = await Company.create({});
+    if (company[key]) {
+      const oldPath = path.join(__dirname, "../uploads", path.basename(company[key]));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    company[key] = `/uploads/${req.file.filename}`;
+    await company.save();
+    res.json({ url: company[key] });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/company/footer-file/:key  (files: file1, file2)
+router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"), async (req, res) => {
+  try {
+    const { key } = req.params;
+    if (!["file1", "file2"].includes(key)) return res.status(400).json({ error: "حقل غير مسموح" });
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
+    let company = await Company.findOne();
+    if (!company) company = await Company.create({});
+    if (company[key]) {
+      const oldPath = path.join(__dirname, "../uploads", path.basename(company[key]));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    company[key] = `/uploads/${req.file.filename}`;
+    await company.save();
+    res.json({ url: company[key] });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/company/footer-items/image/:index
+router.post("/company/footer-items/image/:index", authMiddleware, uploadFooterImg.single("image"), async (req, res) => {
+  try {
+    const index = parseInt(req.params.index);
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    let company = await Company.findOne();
+    if (!company) company = await Company.create({});
+    if (isNaN(index) || index < 0 || index >= company.footerItems.length)
+      return res.status(400).json({ error: "رقم غير صحيح" });
+    const old = company.footerItems[index]?.image;
+    if (old) {
+      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    company.footerItems[index].image = `/uploads/${req.file.filename}`;
+    company.markModified("footerItems");
+    await company.save();
+    res.json({ url: company.footerItems[index].image });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/company/footer-items/file/:index
+router.post("/company/footer-items/file/:index", authMiddleware, uploadDoc.single("file"), async (req, res) => {
+  try {
+    const index = parseInt(req.params.index);
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
+    let company = await Company.findOne();
+    if (!company) company = await Company.create({});
+    if (isNaN(index) || index < 0 || index >= company.footerItems.length)
+      return res.status(400).json({ error: "رقم غير صحيح" });
+    const old = company.footerItems[index]?.file;
+    if (old) {
+      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+    company.footerItems[index].file = `/uploads/${req.file.filename}`;
+    company.markModified("footerItems");
+    await company.save();
+    res.json({ url: company.footerItems[index].file });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/company/footer-items/add
+router.post("/company/footer-items/add", authMiddleware, async (req, res) => {
+  try {
+    let company = await Company.findOne();
+    if (!company) company = await Company.create({});
+    company.footerItems.push({ image: "", linkType: "link", link: "", file: "" });
+    await company.save();
+    res.json({ index: company.footerItems.length - 1 });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/admin/company/footer-items/:index
+router.delete("/company/footer-items/:index", authMiddleware, async (req, res) => {
+  try {
+    const index = parseInt(req.params.index);
+    let company = await Company.findOne();
+    if (!company) return res.json({ success: true });
+    if (isNaN(index) || index < 0 || index >= company.footerItems.length)
+      return res.status(400).json({ error: "رقم غير صحيح" });
+    const item = company.footerItems[index];
+    [item.image, item.file].forEach((f) => {
+      if (f) {
+        const p = path.join(__dirname, "../uploads", path.basename(f));
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      }
+    });
+    company.footerItems.splice(index, 1);
+    company.markModified("footerItems");
+    await company.save();
+    res.json({ success: true });
+  } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
