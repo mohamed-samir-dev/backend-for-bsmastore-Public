@@ -1,60 +1,19 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const Admin = require("../models/Admin");
 const Company = require("../models/Company");
 const Banner = require("../models/Banner");
 const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
 const Review = require("../models/Review");
+const { makeImageUpload, makeFileUpload, deleteFromCloudinary } = require("../config/cloudinary");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.params.field}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
-
-const footerImgStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.params.key}-${Date.now()}${ext}`);
-  },
-});
-const uploadFooterImg = multer({ storage: footerImgStorage, limits: { fileSize: 5 * 1024 * 1024 } });
-
-const docStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `doc-${req.params.key}-${Date.now()}${ext}`);
-  },
-});
-const uploadDoc = multer({ storage: docStorage, limits: { fileSize: 20 * 1024 * 1024 } });
-
-const productImageStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `product-${req.params.id}-${Date.now()}${ext}`);
-  },
-});
-const uploadProductImage = multer({ storage: productImageStorage, limits: { fileSize: 5 * 1024 * 1024 } });
-
-const bannerStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "../uploads")),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `banner${req.params.index}${ext}`);
-  },
-});
-const uploadBanner = multer({ storage: bannerStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = makeImageUpload("company");
+const uploadFooterImg = makeImageUpload("company");
+const uploadDoc = makeFileUpload("docs");
+const uploadProductImage = makeImageUpload("products");
+const uploadBanner = makeImageUpload("banners");
 
 const router = express.Router();
 
@@ -213,9 +172,10 @@ router.post("/company/upload/:field", authMiddleware, upload.single("image"), as
     if (!allowed.includes(field)) return res.status(400).json({ error: "حقل غير مسموح" });
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
 
-    const url = `/uploads/${req.file.filename}`;
+    const url = req.file.path;
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
+    await deleteFromCloudinary(company[field]);
     company[field] = url;
     await company.save();
     res.json({ url });
@@ -232,10 +192,7 @@ router.delete("/company/image/:field", authMiddleware, async (req, res) => {
     if (!allowed.includes(field)) return res.status(400).json({ error: "حقل غير مسموح" });
     const company = await Company.findOne();
     if (!company) return res.json({ success: true });
-    if (company[field]) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(company[field]));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
+    await deleteFromCloudinary(company[field]);
     company[field] = "";
     await company.save();
     res.json({ success: true });
@@ -299,11 +256,8 @@ router.post("/banners/upload/:index", authMiddleware, uploadBanner.single("image
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
 
     const old = doc.banners[index]?.url;
-    if (old) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    const url = `/uploads/${req.file.filename}`;
+    await deleteFromCloudinary(old);
+    const url = req.file.path;
     doc.banners.set(index, { url, active: doc.banners[index].active });
     await doc.save();
     res.json({ url });
@@ -350,10 +304,7 @@ router.delete("/banners/:index/image", authMiddleware, async (req, res) => {
     if (!doc) return res.json({ success: true });
     if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
     const old = doc.banners[index]?.url;
-    if (old) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
+    await deleteFromCloudinary(old);
     doc.banners.set(index, { url: "", active: doc.banners[index].active });
     await doc.save();
     res.json({ success: true });
@@ -370,10 +321,7 @@ router.delete("/banners/:index", authMiddleware, async (req, res) => {
     if (!doc) return res.json({ success: true });
     if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
     const old = doc.banners[index]?.url;
-    if (old) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
+    await deleteFromCloudinary(old);
     doc.banners.splice(index, 1);
     await doc.save();
     res.json({ success: true });
@@ -638,12 +586,8 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
     }
 
     if (req.file) {
-      // delete old image if exists and different
-      if (product.image) {
-        const oldPath = path.join(__dirname, "../uploads", path.basename(product.image));
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      product.image = `/uploads/${req.file.filename}`;
+      await deleteFromCloudinary(product.image);
+      product.image = req.file.path;
     }
 
     await product.save();
@@ -661,11 +605,8 @@ router.post("/company/footer-image/:key", authMiddleware, uploadFooterImg.single
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
-    if (company[key]) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(company[key]));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    company[key] = `/uploads/${req.file.filename}`;
+    await deleteFromCloudinary(company[key]);
+    company[key] = req.file.path;
     await company.save();
     res.json({ url: company[key] });
   } catch {
@@ -681,11 +622,8 @@ router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
-    if (company[key]) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(company[key]));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    company[key] = `/uploads/${req.file.filename}`;
+    await deleteFromCloudinary(company[key], "raw");
+    company[key] = req.file.path;
     await company.save();
     res.json({ url: company[key] });
   } catch {
@@ -703,11 +641,8 @@ router.post("/company/footer-items/image/:index", authMiddleware, uploadFooterIm
     if (isNaN(index) || index < 0 || index >= company.footerItems.length)
       return res.status(400).json({ error: "رقم غير صحيح" });
     const old = company.footerItems[index]?.image;
-    if (old) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    company.footerItems[index].image = `/uploads/${req.file.filename}`;
+    await deleteFromCloudinary(old);
+    company.footerItems[index].image = req.file.path;
     company.markModified("footerItems");
     await company.save();
     res.json({ url: company.footerItems[index].image });
@@ -726,11 +661,8 @@ router.post("/company/footer-items/file/:index", authMiddleware, uploadDoc.singl
     if (isNaN(index) || index < 0 || index >= company.footerItems.length)
       return res.status(400).json({ error: "رقم غير صحيح" });
     const old = company.footerItems[index]?.file;
-    if (old) {
-      const oldPath = path.join(__dirname, "../uploads", path.basename(old));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
-    company.footerItems[index].file = `/uploads/${req.file.filename}`;
+    await deleteFromCloudinary(old, "raw");
+    company.footerItems[index].file = req.file.path;
     company.markModified("footerItems");
     await company.save();
     res.json({ url: company.footerItems[index].file });
@@ -761,12 +693,8 @@ router.delete("/company/footer-items/:index", authMiddleware, async (req, res) =
     if (isNaN(index) || index < 0 || index >= company.footerItems.length)
       return res.status(400).json({ error: "رقم غير صحيح" });
     const item = company.footerItems[index];
-    [item.image, item.file].forEach((f) => {
-      if (f) {
-        const p = path.join(__dirname, "../uploads", path.basename(f));
-        if (fs.existsSync(p)) fs.unlinkSync(p);
-      }
-    });
+    await deleteFromCloudinary(item.image);
+    await deleteFromCloudinary(item.file, "raw");
     company.footerItems.splice(index, 1);
     company.markModified("footerItems");
     await company.save();
