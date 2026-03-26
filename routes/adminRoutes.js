@@ -863,6 +863,26 @@ router.post("/banks", authMiddleware, uploadBankLogo.single("logo"), async (req,
   }
 });
 
+// PUT /api/admin/banks/:id
+router.put("/banks/:id", authMiddleware, uploadBankLogo.single("logo"), async (req, res) => {
+  try {
+    const bank = await Bank.findById(req.params.id);
+    if (!bank) return res.status(404).json({ error: "البنك غير موجود" });
+    const { name, iban } = req.body;
+    if (name) bank.name = name;
+    if (iban) bank.iban = iban;
+    if (req.file) {
+      await deleteFromCloudinary(bank.logo);
+      const result = await uploadToCloudinary(req.file.buffer, "banks");
+      bank.logo = result.secure_url;
+    }
+    await bank.save();
+    res.json(bank);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // DELETE /api/admin/banks/:id
 router.delete("/banks/:id", authMiddleware, async (req, res) => {
   try {
