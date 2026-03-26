@@ -8,6 +8,7 @@ const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
 const SubCategorySettings = require("../models/SubCategorySettings");
 const Review = require("../models/Review");
+const Checkout = require("../models/Checkout");
 const { makeImageUpload, makeFileUpload, uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
 const upload = makeImageUpload();
@@ -526,6 +527,42 @@ router.patch("/sub-categories/max", authMiddleware, async (req, res) => {
     res.json({ max: val });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/orders
+router.get("/orders", authMiddleware, async (req, res) => {
+  try {
+    const orders = await Checkout.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// DELETE /api/admin/orders/:id
+router.delete("/orders/:id", authMiddleware, async (req, res) => {
+  try {
+    const order = await Checkout.findByIdAndDelete(req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: "not found" });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// PUT /api/admin/orders/:id/status
+router.put("/orders/:id/status", authMiddleware, async (req, res) => {
+  try {
+    const order = await Checkout.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ ok: false, error: "not found" });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 

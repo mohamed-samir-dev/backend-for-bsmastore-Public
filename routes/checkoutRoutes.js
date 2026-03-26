@@ -48,7 +48,8 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
 
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    await Checkout.findByIdAndDelete(req.params.id);
+    const order = await Checkout.findByIdAndDelete(req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: "not found" });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
