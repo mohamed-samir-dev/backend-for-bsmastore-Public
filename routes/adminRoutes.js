@@ -6,6 +6,7 @@ const Company = require("../models/Company");
 const Banner = require("../models/Banner");
 const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
+const SubCategorySettings = require("../models/SubCategorySettings");
 const Review = require("../models/Review");
 const { makeImageUpload, makeFileUpload, deleteFromCloudinary } = require("../config/cloudinary");
 
@@ -435,7 +436,90 @@ router.delete("/sub-categories/remove", authMiddleware, async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "الاسم مطلوب" });
     await Product.updateMany({ subCategory: name }, { $unset: { subCategory: "" } });
+    await SubCategorySettings.deleteMany({ subCategory: name });
     res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/sub-categories/settings
+router.get("/sub-categories/settings", authMiddleware, async (req, res) => {
+  try {
+    const settings = await SubCategorySettings.find();
+    res.json(settings);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/sub-categories/settings/toggle
+router.patch("/sub-categories/settings/toggle", authMiddleware, async (req, res) => {
+  try {
+    const { category, subCategory } = req.body;
+    if (!category || !subCategory) return res.status(400).json({ error: "البيانات مطلوبة" });
+    const existing = await SubCategorySettings.findOne({ category, subCategory });
+    const newValue = existing ? !existing.showInHome : true;
+    const doc = await SubCategorySettings.findOneAndUpdate(
+      { category, subCategory },
+      { $set: { showInHome: newValue } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ showInHome: doc.showInHome });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/sub-categories/settings/order
+router.patch("/sub-categories/settings/order", authMiddleware, async (req, res) => {
+  try {
+    const { category, subCategory, order } = req.body;
+    if (!category || !subCategory) return res.status(400).json({ error: "البيانات مطلوبة" });
+    await SubCategorySettings.findOneAndUpdate(
+      { category, subCategory },
+      { $set: { order: Number(order) || 0 } },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/sub-categories/home-settings (public)
+router.get("/sub-categories/home-settings", async (req, res) => {
+  try {
+    const settings = await SubCategorySettings.find({ showInHome: true, category: { $ne: "__config__" } }).sort({ order: 1 });
+    res.json(settings);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/sub-categories/max (public)
+router.get("/sub-categories/max", async (req, res) => {
+  try {
+    const doc = await SubCategorySettings.findOne({ category: "__config__", subCategory: "__max__" });
+    res.json({ max: doc ? doc.order : 4 });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// PATCH /api/admin/sub-categories/max
+router.patch("/sub-categories/max", authMiddleware, async (req, res) => {
+  try {
+    const { max } = req.body;
+    const val = parseInt(max);
+    if (!val || val < 1) return res.status(400).json({ error: "قيمة غير صحيحة" });
+    await SubCategorySettings.findOneAndUpdate(
+      { category: "__config__", subCategory: "__max__" },
+      { $set: { order: val, showInHome: false } },
+      { upsert: true }
+    );
+    res.json({ max: val });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
