@@ -706,7 +706,7 @@ router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
-    await deleteFromCloudinary(company[key], "raw");
+    await deleteFromCloudinary(company[key]);
     company[key] = req.file.path;
     await company.save();
     res.json({ url: company[key] });
@@ -745,7 +745,7 @@ router.post("/company/footer-items/file/:index", authMiddleware, uploadDoc.singl
     if (isNaN(index) || index < 0 || index >= company.footerItems.length)
       return res.status(400).json({ error: "رقم غير صحيح" });
     const old = company.footerItems[index]?.file;
-    await deleteFromCloudinary(old, "raw");
+    await deleteFromCloudinary(old);
     company.footerItems[index].file = req.file.path;
     company.markModified("footerItems");
     await company.save();
@@ -778,7 +778,7 @@ router.delete("/company/footer-items/:index", authMiddleware, async (req, res) =
       return res.status(400).json({ error: "رقم غير صحيح" });
     const item = company.footerItems[index];
     await deleteFromCloudinary(item.image);
-    await deleteFromCloudinary(item.file, "raw");
+    await deleteFromCloudinary(item.file);
     company.footerItems.splice(index, 1);
     company.markModified("footerItems");
     await company.save();

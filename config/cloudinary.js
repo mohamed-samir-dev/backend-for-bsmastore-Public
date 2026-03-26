@@ -19,7 +19,7 @@ function makeImageUpload(folderName) {
 function makeFileUpload(folderName) {
   const storage = new CloudinaryStorage({
     cloudinary,
-    params: { folder: folderName, resource_type: "raw", allowed_formats: ["pdf", "doc", "docx"], type: "upload", flags: "attachment:false" },
+    params: { folder: folderName, resource_type: "raw", allowed_formats: ["pdf", "doc", "docx"] },
   });
   return multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 }
