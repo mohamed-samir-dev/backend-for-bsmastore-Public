@@ -9,9 +9,11 @@ const Product = require("../models/Product");
 const SubCategorySettings = require("../models/SubCategorySettings");
 const Review = require("../models/Review");
 const Checkout = require("../models/Checkout");
+const Bank = require("../models/Bank");
 const { makeImageUpload, makeFileUpload, uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
 const upload = makeImageUpload();
+const uploadBankLogo = makeImageUpload();
 const uploadFooterImg = makeImageUpload();
 const uploadDoc = makeFileUpload();
 const uploadProductImage = makeImageUpload();
@@ -828,6 +830,45 @@ router.delete("/company/footer-items/:index", authMiddleware, async (req, res) =
     company.footerItems.splice(index, 1);
     company.markModified("footerItems");
     await company.save();
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/banks
+router.get("/banks", authMiddleware, async (req, res) => {
+  try {
+    const banks = await Bank.find().sort({ createdAt: -1 });
+    res.json(banks);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/banks
+router.post("/banks", authMiddleware, uploadBankLogo.single("logo"), async (req, res) => {
+  try {
+    const { name, iban } = req.body;
+    if (!name || !iban) return res.status(400).json({ error: "اسم البنك والآيبان مطلوبان" });
+    let logo = "";
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "banks");
+      logo = result.secure_url;
+    }
+    const bank = await Bank.create({ name, iban, logo });
+    res.status(201).json(bank);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/admin/banks/:id
+router.delete("/banks/:id", authMiddleware, async (req, res) => {
+  try {
+    const bank = await Bank.findByIdAndDelete(req.params.id);
+    if (!bank) return res.status(404).json({ error: "البنك غير موجود" });
+    await deleteFromCloudinary(bank.logo);
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });

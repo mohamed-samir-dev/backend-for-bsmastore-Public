@@ -33,11 +33,35 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Checkout.findById(req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: "not found" });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 router.put("/:id/status", authMiddleware, async (req, res) => {
   try {
     const order = await Checkout.findByIdAndUpdate(
       req.params.id,
       { status: req.body.status },
+      { new: true }
+    );
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.put("/:id/financials", authMiddleware, async (req, res) => {
+  try {
+    const { total, downPayment, months, monthlyPayment } = req.body;
+    const order = await Checkout.findByIdAndUpdate(
+      req.params.id,
+      { total, downPayment, months, monthlyPayment },
       { new: true }
     );
     res.json(order);
