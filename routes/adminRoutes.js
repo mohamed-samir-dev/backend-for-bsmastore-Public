@@ -74,12 +74,14 @@ router.post("/login", loginLimiter, async (req, res) => {
       { expiresIn: "8h" }
     );
 
+    const isProd = process.env.NODE_ENV === "production";
     res
       .cookie("admin_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
         maxAge: 8 * 60 * 60 * 1000,
+        domain: isProd ? undefined : undefined,
       })
       .json({ success: true });
   } catch (err) {
@@ -89,10 +91,11 @@ router.post("/login", loginLimiter, async (req, res) => {
 
 // POST /api/admin/logout
 router.post("/logout", (req, res) => {
+  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie("admin_token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
   }).json({ success: true });
 });
 
