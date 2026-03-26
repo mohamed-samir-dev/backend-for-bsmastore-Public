@@ -382,9 +382,9 @@ router.put("/main-categories/rename", authMiddleware, async (req, res) => {
   try {
     const { oldName, newName } = req.body;
     if (!oldName || !newName) return res.status(400).json({ error: "الاسم القديم والجديد مطلوبان" });
-    const exists = await Product.findOne({ category: newName.trim() });
+    const exists = await Product.findOne({ subCategory: newName.trim() });
     if (exists && newName.trim() !== oldName.trim()) return res.status(400).json({ error: "التصنيف موجود بالفعل" });
-    await Product.updateMany({ category: oldName }, { $set: { category: newName.trim() } });
+    await Product.updateMany({ subCategory: oldName }, { $set: { subCategory: newName.trim() } });
     await MainCategory.updateOne({ name: oldName }, { $set: { name: newName.trim() } });
     res.json({ success: true });
   } catch {
