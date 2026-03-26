@@ -8,13 +8,13 @@ const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
 const SubCategorySettings = require("../models/SubCategorySettings");
 const Review = require("../models/Review");
-const { makeImageUpload, makeFileUpload, deleteFromCloudinary } = require("../config/cloudinary");
+const { makeImageUpload, makeFileUpload, uploadToCloudinary, deleteFromCloudinary } = require("../config/cloudinary");
 
-const upload = makeImageUpload("company");
-const uploadFooterImg = makeImageUpload("company");
-const uploadDoc = makeFileUpload("docs");
-const uploadProductImage = makeImageUpload("products");
-const uploadBanner = makeImageUpload("banners");
+const upload = makeImageUpload();
+const uploadFooterImg = makeImageUpload();
+const uploadDoc = makeFileUpload();
+const uploadProductImage = makeImageUpload();
+const uploadBanner = makeImageUpload();
 
 const router = express.Router();
 
@@ -175,15 +175,16 @@ router.post("/company/upload/:field", authMiddleware, upload.single("image"), as
     const allowed = ["logo", "header", "footer", "stamp"];
     if (!allowed.includes(field)) return res.status(400).json({ error: "حقل غير مسموح" });
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
-
-    const url = req.file.path;
+    const result = await uploadToCloudinary(req.file.buffer, "company");
+    const url = result.secure_url;
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
     await deleteFromCloudinary(company[field]);
     company[field] = url;
     await company.save();
     res.json({ url });
-  } catch {
+  } catch (err) {
+    console.error("company upload error:", err);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
@@ -258,10 +259,10 @@ router.post("/banners/upload/:index", authMiddleware, uploadBanner.single("image
     if (!doc) doc = await Banner.create({ banners: DEFAULT_BANNERS });
     if (isNaN(index) || index < 0 || index >= doc.banners.length) return res.status(400).json({ error: "رقم بانر غير صحيح" });
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
-
     const old = doc.banners[index]?.url;
     await deleteFromCloudinary(old);
-    const url = req.file.path;
+    const result = await uploadToCloudinary(req.file.buffer, "banners");
+    const url = result.secure_url;
     doc.banners.set(index, { url, active: doc.banners[index].active });
     await doc.save();
     res.json({ url });
@@ -674,7 +675,8 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
 
     if (req.file) {
       await deleteFromCloudinary(product.image);
-      product.image = req.file.path;
+      const result = await uploadToCloudinary(req.file.buffer, "products");
+      product.image = result.secure_url;
     }
 
     await product.save();
@@ -693,7 +695,8 @@ router.post("/company/footer-image/:key", authMiddleware, uploadFooterImg.single
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
     await deleteFromCloudinary(company[key]);
-    company[key] = req.file.path;
+    const result = await uploadToCloudinary(req.file.buffer, "company");
+    company[key] = result.secure_url;
     await company.save();
     res.json({ url: company[key] });
   } catch {
@@ -709,8 +712,9 @@ router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
-    await deleteFromCloudinary(company[key]);
-    company[key] = req.file.path;
+    await deleteFromCloudinary(company[key], "raw");
+    const result = await uploadToCloudinary(req.file.buffer, "docs", { resource_type: "raw" });
+    company[key] = result.secure_url;
     await company.save();
     res.json({ url: company[key] });
   } catch {
@@ -729,7 +733,8 @@ router.post("/company/footer-items/image/:index", authMiddleware, uploadFooterIm
       return res.status(400).json({ error: "رقم غير صحيح" });
     const old = company.footerItems[index]?.image;
     await deleteFromCloudinary(old);
-    company.footerItems[index].image = req.file.path;
+    const result = await uploadToCloudinary(req.file.buffer, "company");
+    company.footerItems[index].image = result.secure_url;
     company.markModified("footerItems");
     await company.save();
     res.json({ url: company.footerItems[index].image });
@@ -748,8 +753,9 @@ router.post("/company/footer-items/file/:index", authMiddleware, uploadDoc.singl
     if (isNaN(index) || index < 0 || index >= company.footerItems.length)
       return res.status(400).json({ error: "رقم غير صحيح" });
     const old = company.footerItems[index]?.file;
-    await deleteFromCloudinary(old);
-    company.footerItems[index].file = req.file.path;
+    await deleteFromCloudinary(old, "raw");
+    const result = await uploadToCloudinary(req.file.buffer, "docs", { resource_type: "raw" });
+    company.footerItems[index].file = result.secure_url;
     company.markModified("footerItems");
     await company.save();
     res.json({ url: company.footerItems[index].file });

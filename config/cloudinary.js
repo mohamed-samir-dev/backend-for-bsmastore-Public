@@ -1,6 +1,6 @@
 const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
+const { Readable } = require("stream");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,20 +8,24 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-function makeImageUpload(folderName) {
-  const storage = new CloudinaryStorage({
-    cloudinary,
-    params: { folder: folderName, allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"] },
-  });
-  return multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const memoryStorage = multer.memoryStorage();
+
+function makeImageUpload() {
+  return multer({ storage: memoryStorage, limits: { fileSize: 5 * 1024 * 1024 } });
 }
 
-function makeFileUpload(folderName) {
-  const storage = new CloudinaryStorage({
-    cloudinary,
-    params: { folder: folderName, resource_type: "raw", allowed_formats: ["pdf", "doc", "docx"] },
+function makeFileUpload() {
+  return multer({ storage: memoryStorage, limits: { fileSize: 20 * 1024 * 1024 } });
+}
+
+function uploadToCloudinary(buffer, folder, options = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, ...options },
+      (err, result) => (err ? reject(err) : resolve(result))
+    );
+    Readable.from(buffer).pipe(stream);
   });
-  return multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 }
 
 async function deleteFromCloudinary(url, resource_type = "image") {
@@ -29,7 +33,6 @@ async function deleteFromCloudinary(url, resource_type = "image") {
   try {
     const parts = url.split("/");
     const uploadIndex = parts.indexOf("upload");
-    // remove version segment if present (v1234567)
     let pathParts = parts.slice(uploadIndex + 1);
     if (/^v\d+$/.test(pathParts[0])) pathParts = pathParts.slice(1);
     const publicId = pathParts.join("/").replace(/\.[^/.]+$/, "");
@@ -39,4 +42,4 @@ async function deleteFromCloudinary(url, resource_type = "image") {
   }
 }
 
-module.exports = { cloudinary, makeImageUpload, makeFileUpload, deleteFromCloudinary };
+module.exports = { cloudinary, makeImageUpload, makeFileUpload, uploadToCloudinary, deleteFromCloudinary };
