@@ -16,8 +16,15 @@ const checkoutSchema = new mongoose.Schema(
       },
     ],
     total: { type: Number, required: true },
-    downPayment: { type: Number, default: 1000 },
+    downPayment: { type: Number, default: 0 },
     customer: { type: String },
+    whatsapp: { type: String },
+    nationalId: { type: String },
+    address: { type: String },
+    installmentType: { type: String, enum: ["installment", "full"], default: "full" },
+    months: { type: Number, default: 0 },
+    monthlyPayment: { type: Number, default: 0 },
+    status: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
   },
   { timestamps: true }
 );
