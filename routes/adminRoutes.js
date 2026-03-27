@@ -380,12 +380,19 @@ router.post("/main-categories", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/admin/main-categories/extra - categories in MainCategory not in products
+// GET /api/admin/main-categories/extra - all subCategories (from products + MainCategory)
 router.get("/main-categories/extra", authMiddleware, async (req, res) => {
   try {
-    const productCats = await Product.distinct("category");
-    const extra = await MainCategory.find({ name: { $nin: productCats.filter(Boolean) } });
-    res.json(extra.map((c) => ({ name: c.name, count: 0, _id: c._id })));
+    const [productAgg, manualCats] = await Promise.all([
+      Product.aggregate([
+        { $match: { subCategory: { $ne: null, $exists: true } } },
+        { $group: { _id: "$subCategory", count: { $sum: 1 } } },
+      ]),
+      MainCategory.find(),
+    ]);
+    const productMap = new Map(productAgg.map((r) => [r._id, r.count]));
+    const allNames = new Set([...productMap.keys(), ...manualCats.map((c) => c.name)]);
+    res.json([...allNames].sort().map((name) => ({ name, count: productMap.get(name) || 0 })));
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
