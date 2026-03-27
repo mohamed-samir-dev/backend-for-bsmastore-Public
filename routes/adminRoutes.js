@@ -352,6 +352,16 @@ router.get("/main-categories", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/admin/categories - distinct category values from products
+router.get("/categories", authMiddleware, async (req, res) => {
+  try {
+    const cats = await Product.distinct("category");
+    res.json(cats.filter(Boolean).sort());
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // POST /api/admin/main-categories - add new category name (no products yet)
 router.post("/main-categories", authMiddleware, async (req, res) => {
   try {
@@ -498,7 +508,7 @@ router.patch("/sub-categories/settings/order", authMiddleware, async (req, res) 
 // GET /api/admin/sub-categories/home-settings (public)
 router.get("/sub-categories/home-settings", async (req, res) => {
   try {
-    const settings = await SubCategorySettings.find({ showInHome: true, category: { $ne: "__config__" } }).sort({ order: 1 });
+    const settings = await SubCategorySettings.find({ category: { $ne: "__config__" } }).sort({ order: 1 });
     res.json(settings);
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
@@ -663,12 +673,79 @@ router.delete("/reviews/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/products
+router.post("/products", authMiddleware, uploadProductImage.single("image"), async (req, res) => {
+  try {
+    const body = req.body;
+    const productData = {};
+
+    const fields = ["name", "category", "subCategory", "brand", "color", "storage", "network", "screenSize", "description", "deliveryTime"];
+    fields.forEach((f) => { if (body[f]) productData[f] = body[f]; });
+
+    const numFields = ["originalPrice", "salePrice", "warrantyYears"];
+    numFields.forEach((f) => { if (body[f] !== undefined && body[f] !== "") productData[f] = Number(body[f]); });
+
+    const boolFields = ["freeDelivery", "taxIncluded", "inStock"];
+    boolFields.forEach((f) => { if (body[f] !== undefined) productData[f] = body[f] === "true" || body[f] === true; });
+
+    if (body["installment.available"] !== undefined) {
+      productData.installment = {
+        available: body["installment.available"] === "true",
+        downPayment: body["installment.downPayment"] ? Number(body["installment.downPayment"]) : undefined,
+        months: body["installment.months"] ? Number(body["installment.months"]) : undefined,
+        note: body["installment.note"] || "",
+      };
+    }
+
+    const specFields = ["screen", "processor", "ram", "storage", "rearCamera", "frontCamera", "battery", "batteryLife", "charging", "os", "extras"];
+    const specs = {};
+    specFields.forEach((f) => { if (body[`specs.${f}`]) specs[f] = body[`specs.${f}`]; });
+    if (Object.keys(specs).length) productData.specs = specs;
+
+    if (body.colors) {
+      try { productData.colors = JSON.parse(body.colors); } catch { /* ignore */ }
+    }
+
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "products");
+      productData.image = result.secure_url;
+    }
+
+    const product = await Product.create(productData);
+    res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/products
+router.get("/products", authMiddleware, async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 }).select("name category originalPrice salePrice");
+    res.json(products);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // GET /api/admin/products/:id
 router.get("/products/:id", authMiddleware, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "المنتج غير موجود" });
     res.json(product);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/admin/products/:id
+router.delete("/products/:id", authMiddleware, async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return res.status(404).json({ error: "المنتج غير موجود" });
+    await deleteFromCloudinary(product.image);
+    res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
