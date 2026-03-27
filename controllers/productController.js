@@ -12,11 +12,17 @@ exports.getProduct = async (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
+  const { originalPrice, salePrice } = req.body;
+  if (salePrice && Number(salePrice) >= Number(originalPrice))
+    return res.status(400).json({ error: "سعر البيع يجب أن يكون أقل من السعر الأصلي" });
   const product = await Product.create(req.body);
   res.status(201).json(product);
 };
 
 exports.updateProduct = async (req, res) => {
+  const { originalPrice, salePrice } = req.body;
+  if (salePrice && Number(salePrice) >= Number(originalPrice))
+    return res.status(400).json({ error: "سعر البيع يجب أن يكون أقل من السعر الأصلي" });
   const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
   if (!product) return res.status(404).json({ message: "Product not found" });
   res.json(product);
