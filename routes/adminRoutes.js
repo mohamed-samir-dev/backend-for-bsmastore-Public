@@ -7,6 +7,7 @@ const Banner = require("../models/Banner");
 const MainCategory = require("../models/MainCategory");
 const Product = require("../models/Product");
 const SubCategorySettings = require("../models/SubCategorySettings");
+const SubCategory = require("../models/SubCategory");
 const Review = require("../models/Review");
 const Checkout = require("../models/Checkout");
 const Bank = require("../models/Bank");
@@ -418,6 +419,43 @@ router.delete("/main-categories/remove", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/sub-categories - add standalone sub-category
+router.post("/sub-categories", authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: "اسم التصنيف الفرعي مطلوب" });
+    const existsInProducts = await Product.findOne({ subCategory: name.trim() });
+    if (existsInProducts) return res.status(400).json({ error: "التصنيف الفرعي موجود بالفعل" });
+    const existsSC = await SubCategory.findOne({ name: name.trim() });
+    if (existsSC) return res.status(400).json({ error: "التصنيف الفرعي موجود بالفعل" });
+    const sc = await SubCategory.create({ name: name.trim() });
+    res.status(201).json({ name: sc.name, count: 0 });
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/sub-categories/all - all from MainCategory collection
+router.get("/sub-categories/all", authMiddleware, async (req, res) => {
+  try {
+    const cats = await MainCategory.find().sort({ name: 1 });
+    res.json(cats.map((c) => ({ _id: c._id, name: c.name })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/admin/sub-categories/extra - standalone sub-categories not in products
+router.get("/sub-categories/extra", authMiddleware, async (req, res) => {
+  try {
+    const productSubCats = await Product.distinct("subCategory");
+    const extra = await SubCategory.find({ name: { $nin: productSubCats.filter(Boolean) } });
+    res.json(extra.map((s) => ({ name: s.name, count: 0, _id: s._id })));
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // GET /api/admin/sub-categories
 router.get("/sub-categories", authMiddleware, async (req, res) => {
   try {
@@ -441,6 +479,7 @@ router.put("/sub-categories/rename", authMiddleware, async (req, res) => {
       { subCategory: oldName, category: oldCategory },
       { $set: { subCategory: newName.trim(), category: (newCategory || oldCategory).trim() } }
     );
+    await SubCategory.updateOne({ name: oldName }, { $set: { name: newName.trim() } });
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
@@ -454,6 +493,7 @@ router.delete("/sub-categories/remove", authMiddleware, async (req, res) => {
     if (!name) return res.status(400).json({ error: "الاسم مطلوب" });
     await Product.updateMany({ subCategory: name }, { $unset: { subCategory: "" } });
     await SubCategorySettings.deleteMany({ subCategory: name });
+    await SubCategory.deleteOne({ name });
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
