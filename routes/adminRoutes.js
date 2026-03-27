@@ -460,11 +460,11 @@ router.get("/sub-categories/extra", authMiddleware, async (req, res) => {
 router.get("/sub-categories", authMiddleware, async (req, res) => {
   try {
     const result = await Product.aggregate([
-      { $match: { subCategory: { $ne: null, $exists: true } } },
-      { $group: { _id: { category: "$category", subCategory: "$subCategory" }, count: { $sum: 1 } } },
-      { $sort: { "_id.category": 1, "_id.subCategory": 1 } },
+      { $match: { category: { $ne: null, $exists: true } } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
     ]);
-    res.json(result.map((r) => ({ category: r._id.category, name: r._id.subCategory, count: r.count })));
+    res.json(result.map((r) => ({ category: r._id, name: r._id, count: r.count })));
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
@@ -491,8 +491,8 @@ router.delete("/sub-categories/remove", authMiddleware, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "الاسم مطلوب" });
-    await Product.updateMany({ subCategory: name }, { $unset: { subCategory: "" } });
-    await SubCategorySettings.deleteMany({ subCategory: name });
+    await Product.updateMany({ category: name }, { $unset: { category: "" } });
+    await SubCategorySettings.deleteMany({ category: name });
     await SubCategory.deleteOne({ name });
     res.json({ success: true });
   } catch {
