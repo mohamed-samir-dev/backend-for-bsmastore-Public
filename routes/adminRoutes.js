@@ -554,12 +554,9 @@ router.patch("/sub-categories/settings/order", authMiddleware, async (req, res) 
   }
 });
 
-// GET /api/admin/sub-categories/public (public - only showInHome categories, sorted by order)
+// GET /api/admin/sub-categories/public (public - all categories with products)
 router.get("/sub-categories/public", async (req, res) => {
   try {
-    const homeSettings = await SubCategorySettings.find({ showInHome: true, category: { $ne: "__config__" } }).sort({ order: 1 });
-    if (!homeSettings.length) return res.json([]);
-
     const [fromCategory, fromSubCategory] = await Promise.all([
       Product.aggregate([
         { $match: { category: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
@@ -578,11 +575,7 @@ router.get("/sub-categories/public", async (req, res) => {
       if (!map.has(r._id)) map.set(r._id, { name: r._id, count: r.count, image: r.image });
     });
 
-    const result = homeSettings
-      .map((s) => map.get(s.category) || map.get(s.subCategory))
-      .filter(Boolean);
-
-    res.json(result);
+    res.json([...map.values()]);
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
