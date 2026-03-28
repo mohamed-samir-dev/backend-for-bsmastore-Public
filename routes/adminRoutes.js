@@ -554,28 +554,15 @@ router.patch("/sub-categories/settings/order", authMiddleware, async (req, res) 
   }
 });
 
-// GET /api/admin/sub-categories/public (public - all categories with products)
+// GET /api/admin/sub-categories/public (public - categories from product.category only)
 router.get("/sub-categories/public", async (req, res) => {
   try {
-    const [fromCategory, fromSubCategory] = await Promise.all([
-      Product.aggregate([
-        { $match: { category: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
-        { $sort: { createdAt: -1 } },
-        { $group: { _id: "$category", count: { $sum: 1 }, image: { $first: "$image" } } },
-      ]),
-      Product.aggregate([
-        { $match: { subCategory: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
-        { $sort: { createdAt: -1 } },
-        { $group: { _id: "$subCategory", count: { $sum: 1 }, image: { $first: "$image" } } },
-      ]),
+    const result = await Product.aggregate([
+      { $match: { category: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$category", count: { $sum: 1 }, image: { $first: "$image" } } },
     ]);
-
-    const map = new Map();
-    [...fromCategory, ...fromSubCategory].forEach((r) => {
-      if (!map.has(r._id)) map.set(r._id, { name: r._id, count: r.count, image: r.image });
-    });
-
-    res.json([...map.values()]);
+    res.json(result.map((r) => ({ name: r._id, count: r.count, image: r.image })));
   } catch {
     res.status(500).json({ error: "خطأ في الخادم" });
   }
