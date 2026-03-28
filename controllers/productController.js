@@ -1,8 +1,24 @@
 const Product = require("../models/Product");
 
+function normalizeArabic(str) {
+  return str
+    .replace(/[أإآا]/g, "ا")
+    .replace(/[ىي]/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي");
+}
+
 exports.getProducts = async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json(await Product.find());
+
+  const normalized = normalizeArabic(q);
   const products = await Product.find();
-  res.json(products);
+  const filtered = products.filter((p) =>
+    normalizeArabic(p.name).includes(normalized)
+  );
+  res.json(filtered);
 };
 
 exports.getProduct = async (req, res) => {
