@@ -976,6 +976,24 @@ router.delete("/company/footer-items/:index", authMiddleware, async (req, res) =
   }
 });
 
+// GET /api/admin/category-banners-bulk?categories=cat1,cat2,...
+router.get("/category-banners-bulk", async (req, res) => {
+  try {
+    const raw = req.query.categories;
+    if (!raw) return res.json({});
+    const names = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+    const docs = await CategoryBanner.find({ category: { $in: names } });
+    const result = {};
+    for (const doc of docs) {
+      const active = doc.banners.filter((b) => b.url && b.active).map((b) => b.url);
+      if (active.length) result[doc.category] = active;
+    }
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // GET /api/admin/category-banners/:category
 router.get("/category-banners/:category", async (req, res) => {
   try {
