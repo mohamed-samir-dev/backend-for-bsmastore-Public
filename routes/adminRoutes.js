@@ -1,6 +1,5 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const rateLimit = require("express-rate-limit");
 const Admin = require("../models/Admin");
 const Company = require("../models/Company");
 const Banner = require("../models/Banner");
@@ -36,16 +35,8 @@ function authMiddleware(req, res, next) {
   }
 }
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  message: { error: "محاولات كثيرة، حاول بعد 15 دقيقة" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // POST /api/admin/login
-router.post("/login", loginLimiter, async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -56,24 +47,9 @@ router.post("/login", loginLimiter, async (req, res) => {
     if (!admin)
       return res.status(401).json({ error: "بيانات غير صحيحة" });
 
-    if (admin.isLocked())
-      return res.status(423).json({ error: "الحساب مقفل مؤقتاً، حاول لاحقاً" });
-
+    // TODO: re-enable loginAttempts & lockUntil in production
     const match = await admin.comparePassword(password);
-    if (!match) {
-      admin.loginAttempts += 1;
-      if (admin.loginAttempts >= 5) {
-        admin.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
-        admin.loginAttempts = 0;
-      }
-      await admin.save();
-      return res.status(401).json({ error: "بيانات غير صحيحة" });
-    }
-
-    // Reset on success
-    admin.loginAttempts = 0;
-    admin.lockUntil = undefined;
-    await admin.save();
+    if (!match) return res.status(401).json({ error: "بيانات غير صحيحة" });
 
     const token = jwt.sign(
       { id: admin._id, email: admin.email },
