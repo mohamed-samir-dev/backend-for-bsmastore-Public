@@ -41,6 +41,7 @@ const productSchema = new mongoose.Schema(
     subCategory: { type: String },
     brand: { type: String },
     inStock: { type: Boolean, default: true },
+    colors: { type: mongoose.Schema.Types.Mixed },
   },
   {
     timestamps: true,
