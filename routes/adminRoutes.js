@@ -18,6 +18,7 @@ const upload = makeImageUpload();
 const uploadBankLogo = makeImageUpload();
 const uploadFooterImg = makeImageUpload();
 const uploadDoc = makeFileUpload();
+const uploadProductImage = makeImageUpload();
 const uploadBanner = makeImageUpload();
 const uploadCategoryBanner = makeImageUpload();
 
@@ -738,7 +739,7 @@ router.delete("/reviews/:id", authMiddleware, async (req, res) => {
 });
 
 // POST /api/admin/products
-router.post("/products", authMiddleware, async (req, res) => {
+router.post("/products", authMiddleware, uploadProductImage.single("image"), async (req, res) => {
   try {
     const body = req.body;
     const productData = {};
@@ -768,6 +769,11 @@ router.post("/products", authMiddleware, async (req, res) => {
 
     if (body.colors) {
       try { productData.colors = JSON.parse(body.colors); } catch { /* ignore */ }
+    }
+
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "products");
+      productData.image = result.secure_url;
     }
 
     const product = await Product.create(productData);
