@@ -868,7 +868,8 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
     await product.save();
     res.json(product);
   } catch (err) {
-    res.status(500).json({ error: "خطأ في الخادم" });
+    console.error("PUT /products/:id error:", err);
+    res.status(500).json({ error: err.message || "خطأ في الخادم" });
   }
 });
 
