@@ -835,7 +835,10 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
 
     // installment
     if (body["installment.available"] !== undefined) {
-      const inst = (product.installment || {}).toObject ? product.installment.toObject() : { ...product.installment };
+      const hasInstallment = product.installment && typeof product.installment === "object";
+      const inst = hasInstallment
+        ? (typeof product.installment.toObject === "function" ? product.installment.toObject() : { ...product.installment })
+        : {};
       inst.available = body["installment.available"] === "true" || body["installment.available"] === true;
       inst.downPayment = body["installment.downPayment"] ? Number(body["installment.downPayment"]) : inst.downPayment;
       inst.months = body["installment.months"] ? Number(body["installment.months"]) : inst.months;
@@ -848,7 +851,10 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
     const specFields = ["screen", "processor", "ram", "storage", "rearCamera", "frontCamera", "battery", "batteryLife", "charging", "os", "extras"];
     const hasSpecs = specFields.some((f) => body[`specs.${f}`] !== undefined);
     if (hasSpecs) {
-      const specs = (product.specs || {}).toObject ? product.specs.toObject() : { ...product.specs };
+      const hasSpecsObject = product.specs && typeof product.specs === "object";
+      const specs = hasSpecsObject
+        ? (typeof product.specs.toObject === "function" ? product.specs.toObject() : { ...product.specs })
+        : {};
       specFields.forEach((f) => { if (body[`specs.${f}`] !== undefined) specs[f] = body[`specs.${f}`]; });
       product.specs = specs;
       product.markModified("specs");

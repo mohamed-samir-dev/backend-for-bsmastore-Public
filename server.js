@@ -29,6 +29,14 @@ app.get("/", (req, res) => {
   res.json({ message: "API is running..." });
 });
 
+app.get("/debug-env", (req, res) => {
+  res.json({
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "MISSING",
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? "SET" : "MISSING",
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "SET" : "MISSING",
+  });
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/products", productRoutes);
 app.use("/api/checkout", checkoutRoutes);
