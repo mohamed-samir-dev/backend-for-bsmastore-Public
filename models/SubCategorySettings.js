@@ -5,6 +5,7 @@ const subCategorySettingsSchema = new mongoose.Schema({
   subCategory: { type: String, required: true },
   showInHome: { type: Boolean, default: false },
   order: { type: Number, default: 0 },
+  image: { type: String, default: "" },
 });
 
 subCategorySettingsSchema.index({ category: 1, subCategory: 1 }, { unique: true });

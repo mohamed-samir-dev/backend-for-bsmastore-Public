@@ -534,13 +534,38 @@ router.patch("/sub-categories/settings/order", authMiddleware, async (req, res) 
 // GET /api/admin/sub-categories/public (public - categories from product.category only)
 router.get("/sub-categories/public", async (req, res) => {
   try {
-    const result = await Product.aggregate([
-      { $match: { category: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
-      { $sort: { createdAt: -1 } },
-      { $group: { _id: "$category", count: { $sum: 1 }, image: { $first: "$image" } } },
+    const [result, customImages] = await Promise.all([
+      Product.aggregate([
+        { $match: { category: { $ne: null, $exists: true }, image: { $ne: "", $exists: true } } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: "$category", count: { $sum: 1 }, image: { $first: "$image" } } },
+      ]),
+      SubCategorySettings.find({ image: { $ne: "", $exists: true } }).select("category image"),
     ]);
-    res.json(result.map((r) => ({ name: r._id, count: r.count, image: r.image })));
+    const imageMap = new Map(customImages.map((s) => [s.category, s.image]));
+    res.json(result.map((r) => ({ name: r._id, count: r.count, image: imageMap.get(r._id) || r.image })));
   } catch {
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// POST /api/admin/sub-categories/settings/image
+router.post("/sub-categories/settings/image", authMiddleware, makeImageUpload().single("image"), async (req, res) => {
+  try {
+    const { category } = req.body;
+    if (!category) return res.status(400).json({ error: "التصنيف مطلوب" });
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    const existing = await SubCategorySettings.findOne({ category, subCategory: category });
+    if (existing?.image) await deleteFromCloudinary(existing.image);
+    const result = await uploadToCloudinary(req.file.buffer, "category-images");
+    await SubCategorySettings.findOneAndUpdate(
+      { category, subCategory: category },
+      { $set: { image: result.secure_url } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
