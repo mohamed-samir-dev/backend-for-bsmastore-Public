@@ -18,7 +18,6 @@ const upload = makeImageUpload();
 const uploadBankLogo = makeImageUpload();
 const uploadFooterImg = makeImageUpload();
 const uploadDoc = makeFileUpload();
-const uploadProductImage = makeImageUpload();
 const uploadBanner = makeImageUpload();
 const uploadCategoryBanner = makeImageUpload();
 
@@ -739,7 +738,7 @@ router.delete("/reviews/:id", authMiddleware, async (req, res) => {
 });
 
 // POST /api/admin/products
-router.post("/products", authMiddleware, uploadProductImage.single("image"), async (req, res) => {
+router.post("/products", authMiddleware, async (req, res) => {
   try {
     const body = req.body;
     const productData = {};
@@ -769,11 +768,6 @@ router.post("/products", authMiddleware, uploadProductImage.single("image"), asy
 
     if (body.colors) {
       try { productData.colors = JSON.parse(body.colors); } catch { /* ignore */ }
-    }
-
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "products");
-      productData.image = result.secure_url;
     }
 
     const product = await Product.create(productData);
@@ -817,8 +811,8 @@ router.delete("/products/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/admin/products/:id  (with optional image upload)
-router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), async (req, res) => {
+// PUT /api/admin/products/:id
+router.put("/products/:id", authMiddleware, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "المنتج غير موجود" });
@@ -833,7 +827,6 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
     const boolFields = ["freeDelivery", "taxIncluded", "inStock"];
     boolFields.forEach((f) => { if (body[f] !== undefined) product[f] = body[f] === "true" || body[f] === true; });
 
-    // installment
     if (body["installment.available"] !== undefined) {
       const hasInstallment = product.installment && typeof product.installment === "object";
       const inst = hasInstallment
@@ -847,7 +840,6 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
       product.markModified("installment");
     }
 
-    // specs
     const specFields = ["screen", "processor", "ram", "storage", "rearCamera", "frontCamera", "battery", "batteryLife", "charging", "os", "extras"];
     const hasSpecs = specFields.some((f) => body[`specs.${f}`] !== undefined);
     if (hasSpecs) {
@@ -860,15 +852,8 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
       product.markModified("specs");
     }
 
-    // colors / variants
     if (body.colors !== undefined) {
       try { product.colors = JSON.parse(body.colors); } catch { /* ignore */ }
-    }
-
-    if (req.file) {
-      await deleteFromCloudinary(product.image);
-      const result = await uploadToCloudinary(req.file.buffer, "products");
-      product.image = result.secure_url;
     }
 
     await product.save();
