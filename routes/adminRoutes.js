@@ -779,7 +779,8 @@ router.post("/products", authMiddleware, uploadProductImage.single("image"), asy
     const product = await Product.create(productData);
     res.status(201).json(product);
   } catch (err) {
-    res.status(500).json({ error: "خطأ في الخادم" });
+    console.error("POST /products error:", err);
+    res.status(500).json({ error: err.message || "خطأ في الخادم" });
   }
 });
 
