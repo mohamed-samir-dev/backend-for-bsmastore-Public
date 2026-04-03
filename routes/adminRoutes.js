@@ -835,19 +835,23 @@ router.put("/products/:id", authMiddleware, uploadProductImage.single("image"), 
 
     // installment
     if (body["installment.available"] !== undefined) {
-      product.installment = product.installment || {};
-      product.installment.available = body["installment.available"] === "true" || body["installment.available"] === true;
-      product.installment.downPayment = body["installment.downPayment"] ? Number(body["installment.downPayment"]) : product.installment.downPayment;
-      product.installment.months = body["installment.months"] ? Number(body["installment.months"]) : product.installment.months;
-      product.installment.note = body["installment.note"] ?? product.installment.note;
+      const inst = (product.installment || {}).toObject ? product.installment.toObject() : { ...product.installment };
+      inst.available = body["installment.available"] === "true" || body["installment.available"] === true;
+      inst.downPayment = body["installment.downPayment"] ? Number(body["installment.downPayment"]) : inst.downPayment;
+      inst.months = body["installment.months"] ? Number(body["installment.months"]) : inst.months;
+      inst.note = body["installment.note"] ?? inst.note;
+      product.installment = inst;
+      product.markModified("installment");
     }
 
     // specs
     const specFields = ["screen", "processor", "ram", "storage", "rearCamera", "frontCamera", "battery", "batteryLife", "charging", "os", "extras"];
     const hasSpecs = specFields.some((f) => body[`specs.${f}`] !== undefined);
     if (hasSpecs) {
-      product.specs = product.specs || {};
-      specFields.forEach((f) => { if (body[`specs.${f}`] !== undefined) product.specs[f] = body[`specs.${f}`]; });
+      const specs = (product.specs || {}).toObject ? product.specs.toObject() : { ...product.specs };
+      specFields.forEach((f) => { if (body[`specs.${f}`] !== undefined) specs[f] = body[`specs.${f}`]; });
+      product.specs = specs;
+      product.markModified("specs");
     }
 
     // colors / variants
