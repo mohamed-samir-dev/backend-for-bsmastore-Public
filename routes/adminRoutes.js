@@ -737,13 +737,25 @@ router.delete("/reviews/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/products/upload-image
+router.post("/products/upload-image", authMiddleware, makeImageUpload().single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
+    const result = await uploadToCloudinary(req.file.buffer, "products");
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    console.error("upload-image error:", err);
+    res.status(500).json({ error: "خطأ في رفع الصورة" });
+  }
+});
+
 // POST /api/admin/products
 router.post("/products", authMiddleware, async (req, res) => {
   try {
     const body = req.body;
     const productData = {};
 
-    const fields = ["name", "category", "subCategory", "brand", "color", "storage", "network", "screenSize", "description", "deliveryTime"];
+    const fields = ["name", "image", "category", "subCategory", "brand", "color", "storage", "network", "screenSize", "description", "deliveryTime"];
     fields.forEach((f) => { if (body[f]) productData[f] = body[f]; });
 
     const numFields = ["originalPrice", "salePrice", "warrantyYears"];
