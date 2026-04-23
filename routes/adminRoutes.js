@@ -778,6 +778,8 @@ router.post("/products", authMiddleware, async (req, res) => {
     specFields.forEach((f) => { if (body[`specs.${f}`]) specs[f] = body[`specs.${f}`]; });
     if (Object.keys(specs).length) productData.specs = specs;
 
+    if (Array.isArray(body.images)) productData.images = body.images;
+
     if (body.colors) {
       try { productData.colors = JSON.parse(body.colors); } catch { /* ignore */ }
     }
@@ -863,6 +865,9 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
       product.specs = specs;
       product.markModified("specs");
     }
+
+    if (Array.isArray(body.images)) product.images = body.images;
+    if (body.image !== undefined) product.image = body.image;
 
     if (body.colors !== undefined) {
       try { product.colors = JSON.parse(body.colors); } catch { /* ignore */ }
