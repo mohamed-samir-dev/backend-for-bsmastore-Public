@@ -903,7 +903,7 @@ router.post("/company/footer-image/:key", authMiddleware, uploadFooterImg.single
 router.post("/company/footer-file/:key", authMiddleware, uploadDoc.single("file"), async (req, res) => {
   try {
     const { key } = req.params;
-    if (!["file1", "file2"].includes(key)) return res.status(400).json({ error: "حقل غير مسموح" });
+    if (!["file1", "file2", "qrFile"].includes(key)) return res.status(400).json({ error: "حقل غير مسموح" });
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع ملف" });
     let company = await Company.findOne();
     if (!company) company = await Company.create({});
