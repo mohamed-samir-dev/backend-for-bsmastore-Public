@@ -21,6 +21,8 @@ const companySchema = new mongoose.Schema({
   stamp: { type: String, default: "" },
   qrImage: { type: String, default: "" },
   qrLink: { type: String, default: "" },
+  qrLinkType: { type: String, default: "link" },
+  qrFile: { type: String, default: "" },
   img1: { type: String, default: "" },
   link1: { type: String, default: "" },
   link1Type: { type: String, default: "link" },

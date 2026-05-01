@@ -1,0 +1,66 @@
+[
+  {
+    "installment": {
+      "available": true,
+      "conditions": [
+        "قسط شهري يبدأ من 145 ريال لمدة 24 شهر"
+      ]
+    },
+    "_id": "69ea542847825c3bcd5b787d",
+    "name": "ابل ايفون 14 برو ماكس - 256 جيجا - اسود",
+    "originalPrice": 3800,
+    "salePrice": 3500,
+    "description": "الشروط الواجب توفرها للتقديم:\r\n\r\n• مواطن سعودي او مقيم بإقامة سارية.\r\n• اتمام سداد الدفعة المقدمة لتأكيد الطلب.\r\n• تقديم بيانات صحيحة للتواصل والمتابعة.\r\n• توقيع عقد الأقساط عند استلام الجهاز.\r\n• الالتزام بسداد القسط الشهري في موعده.",
+    "image": "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896179/iPhone_15_Black_PDP_Image_Position-1__en-ME-scaled_vkrw36.avif",
+    "images": [
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896179/iPhone_15_Black_PDP_Image_Position-1__en-ME-scaled_vkrw36.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_1b__en-ME-scaled_sblcsz.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_2__en-ME-scaled_mhhrvk.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_3__en-ME-scaled_zhhaey.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896930/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_8__en-ME-scaled_jvebov.avif"
+    ],
+    "color": "أسود",
+    "storage": "256 GB",
+    "screenSize": "6.7 Inches",
+    "freeDelivery": true,
+    "deliveryTime": "5-10 أيام",
+    "warrantyYears": 2,
+    "taxIncluded": true,
+    "category": "ابل ايفون 14 برو ماكس",
+    "subCategory": "موبايلات سمارت",
+    "brand": "Apple",
+    "inStock": true
+  },
+  {
+    "installment": {
+      "available": true,
+      "conditions": [
+        "قسط شهري يبدأ من 166 ريال لمدة 24 شهر"
+      ]
+    },
+    "_id": "69ea542847825c3bcd5b787e",
+    "name": "ابل ايفون 14 برو ماكس - 512 جيجا - اسود",
+    "originalPrice": 4200,
+    "salePrice": 3999,
+    "description": "الشروط الواجب توفرها للتقديم:\r\n\r\n• مواطن سعودي او مقيم بإقامة سارية.\r\n• اتمام سداد الدفعة المقدمة لتأكيد الطلب.\r\n• تقديم بيانات صحيحة للتواصل والمتابعة.\r\n• توقيع عقد الأقساط عند استلام الجهاز.\r\n• الالتزام بسداد القسط الشهري في موعده.",
+    "image": "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896179/iPhone_15_Black_PDP_Image_Position-1__en-ME-scaled_vkrw36.avif",
+    "images": [
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896179/iPhone_15_Black_PDP_Image_Position-1__en-ME-scaled_vkrw36.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_1b__en-ME-scaled_sblcsz.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_2__en-ME-scaled_mhhrvk.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896929/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_3__en-ME-scaled_zhhaey.avif",
+      "https://res.cloudinary.com/dyqkhcuxe/image/upload/v1776896930/iPhone_16_Pro_Black_Titanium_PDP_Image_Position_8__en-ME-scaled_jvebov.avif"
+    ],
+    "color": "أسود",
+    "storage": "512 GB",
+    "screenSize": "6.7 Inches",
+    "freeDelivery": true,
+    "deliveryTime": "5-10 أيام",
+    "warrantyYears": 2,
+    "taxIncluded": true,
+    "category": "ابل ايفون 14 برو ماكس",
+    "subCategory": "موبايلات سمارت",
+    "brand": "Apple",
+    "inStock": true
+  }
+]
